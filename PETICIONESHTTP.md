@@ -157,3 +157,70 @@ export interface Support {
                 </tbody>
 ```
 ## Crear una pequeña paginación
+* Prmero crearemos el codigo para la paginación en el mismo archivo de Usuarios.tsx para observar como va creciendo nuestro codigo poco a poco y lo acabaremos resolviendo creando un custom hook que mantendrá activo y actualizado ese mismo codigo que vamos a crear ahora.
+* Para crear la paginación en la API de reqres tenemos que dirigirnos a PostMan y en el Query Params escribir page y su value la pagina que queramos obtener
+```
+key: page
+value: 2
+respuesta de postman: https://reqres.in/api/users?page=2
+```
+* Por ejemplo la page 3 no existe ya que PostMan nos indica que data es un arreglo vacio
+* Entonces nosotros tenemos que volver a realizar una nueva peticion HTTP entonces, en teoria puedo crear una funcion con el nombre de cargarUsuarios y en su cuerpo voy a pegar el codigo que contenia useEffect y en el cuerpo de useEffect voy a mandar a llamar la funcion recien creada:
+```
+    useEffect(() => {
+        cargarUsuarios()
+    }, [])
+
+    const cargarUsuarios = () =>{
+          //llamado al API
+          reqResApi.get<ReqResListado>('/users')
+          .then((r)=>setUsuarios(r.data.data))
+              .catch(console.log)
+    }
+```
+* Vamos a crear un button en nuestro return principal con un onClick que va a mandar a llamar la funcion recien creada.
+* Antes que nada vamos a refactorizar el codigo de cargarUsuarios utilizando async/await ya que no está dentro del cuerpo de useEffect y ahora si podemos utilizarlo:
+```
+const cargarUsuarios = async() =>{
+        //llamado al API
+        const resp = await reqResApi.get<ReqResListado>('/users')
+        setUsuarios(resp.data.data);  
+    }
+```
+* Ahora cuando le doy al boton lo unico que hace es renderizar la misma data ya que solamente llama a la misma peticion todo el rato, entonces yo necesito de alguna manera actualizar la informacion de los usuarios y para eso podria utilizar el useState, pero aqui hay un inconveniente y es que useState renderiza el codigo HTML y yo no necesito eso, solamente necesito cambiar la informacion una vez de click.
+* Eso da pie a utilizar useRef para crear una referencia, lo que hace useRef es que cuando cambia su valor sigue siendo la misma pero no va a cambiar su procedimiento para renderizar el componente
+```
+    const paginaRef = useRef(1); <-- importamos el hook
+```
+* Ahora tiene el valor de 1, entonces sabemos que cuando el componente se vuelve a cargar tiene el valor de uno
+* En la peticion tenemos que mandarle el query param para actualizar la paginacion.
+* En el codigo de la peticion HTTP vamos a hacer la configuracion de axis que es para realizar una serie de querys u opciones a nuestra peticion HTTP
+```
+  const cargarUsuarios = async() =>{
+        //llamado al API
+        const resp = await reqResApi.get<ReqResListado>('/users', { <--Aqui creamos el objeto para su configuracion
+            params: { <-- params es otro objeto que contendrá los query params de la peticion http
+                page: paginaRef.current <-- Aqui mandamos a llamar el hook de useRef //current es para mandar el valor nada mas (1)
+            }
+        })
+        setUsuarios(resp.data.data);  
+    }
+```
+* Ahora tenemos que hacer algunas validaciones antes de incrementar el valor de useRef mediante el boton, esas validaciones vamos a hacerlo dentro de la misma funcion de cargarUsuarios
+```
+    const cargarUsuarios = async() =>{
+        //llamado al API
+        const resp = await reqResApi.get<ReqResListado>('/users', {
+            params: {
+                page: paginaRef.current //current es para mandar el valor nada mas
+            }
+        })
+        // Validacion
+        if(resp.data.data.length > 0){
+            setUsuarios(resp.data.data)
+            paginaRef.current ++;
+        }else{
+            alert('No hay más registros');
+        }
+    }
+```
