@@ -1,30 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { reqResApi } from '../api/reqRes';
-import { ReqResListado, Usuario } from '../interfaces/reqRes';
+import { useUsuarios } from '../hooks/useUsuarios';
+import { Usuario } from '../interfaces/reqRes';
 
 export const Usuarios = () => {
-    const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-    useEffect(() => {
-        cargarUsuarios()
-    }, [])
-
-    const paginaRef = useRef(1);
-
-    const cargarUsuarios = async() =>{
-        //llamado al API
-        const resp = await reqResApi.get<ReqResListado>('/users', {
-            params: {
-                page: paginaRef.current //current es para mandar el valor nada mas
-            }
-        })
-        // Validacion
-        if(resp.data.data.length > 0){
-            setUsuarios(resp.data.data)
-            paginaRef.current ++;
-        }else{
-            alert('No hay más registros');
-        }
-    }
+    const {usuarios, paginaSiguiente, paginaAnterior} = useUsuarios();
 
     const renderItem = ( user:Usuario )=>{
         // Los key deben ser strings entonces vamos a transformar de number a string
@@ -59,7 +37,14 @@ export const Usuarios = () => {
                 </tbody>
             </table>
             <button
-            onClick={cargarUsuarios}>
+            className='btn btn-primary'
+            onClick={paginaAnterior}>
+                Anterior
+            </button>
+                    &nbsp;
+            <button
+            className='btn btn-primary'
+            onClick={paginaSiguiente}>
                 Siguiente
             </button>
         </>
